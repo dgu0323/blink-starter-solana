@@ -15,8 +15,6 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 
-import { BN } from "@project-serum/anchor";
-
 // CAIP-2 format for Solana
 const blockchain = BLOCKCHAIN_IDS.devnet;
 
@@ -131,18 +129,26 @@ const prepareTransaction = async (
   number: number,
   color: string
 ) => {
-  // Create the instruction data
-  const instructionData = Buffer.from([
+  // 创建指令数据，使用纯 JavaScript 实现
+  const numberBuffer = new Uint8Array(8);
+  const numberView = new DataView(numberBuffer.buffer);
+  numberView.setBigUint64(0, BigInt(number), true);
+
+  const colorLengthBuffer = new Uint8Array(4);
+  const colorLengthView = new DataView(colorLengthBuffer.buffer);
+  colorLengthView.setUint32(0, color.length, true);
+
+  const instructionData = Buffer.concat([
     // Anchor discriminator (8 bytes)
-    ...new BN(8).toArray("le", 8),
+    Buffer.from([0, 0, 0, 0, 0, 0, 0, 0]),
     // Instruction index for set_favorites (1 byte)
-    0,
+    Buffer.from([0]),
     // Number (8 bytes)
-    ...new BN(number).toArray("le", 8),
+    Buffer.from(numberBuffer),
     // Color string length (4 bytes)
-    ...new BN(color.length).toArray("le", 4),
+    Buffer.from(colorLengthBuffer),
     // Color string bytes
-    ...Buffer.from(color),
+    Buffer.from(color),
   ]);
 
   // Create the instruction
