@@ -15,6 +15,9 @@ import {
   VersionedTransaction,
 } from "@solana/web3.js";
 
+// 添加 Edge Runtime 配置
+export const runtime = 'edge';
+
 // CAIP-2 format for Solana
 const blockchain = BLOCKCHAIN_IDS.devnet;
 
@@ -129,26 +132,28 @@ const prepareTransaction = async (
   number: number,
   color: string
 ) => {
-  // 创建指令数据，使用纯 JavaScript 实现
-  const numberBuffer = new Uint8Array(8);
-  const numberView = new DataView(numberBuffer.buffer);
-  numberView.setBigUint64(0, BigInt(number), true);
+  // 使用更简单的序列化方法
+  const numberBytes = new Uint8Array(8);
+  for (let i = 0; i < 8; i++) {
+    numberBytes[i] = (number >> (i * 8)) & 0xFF;
+  }
 
-  const colorLengthBuffer = new Uint8Array(4);
-  const colorLengthView = new DataView(colorLengthBuffer.buffer);
-  colorLengthView.setUint32(0, color.length, true);
+  const colorLengthBytes = new Uint8Array(4);
+  for (let i = 0; i < 4; i++) {
+    colorLengthBytes[i] = (color.length >> (i * 8)) & 0xFF;
+  }
 
-  const instructionData = Buffer.concat([
+  const instructionData = Buffer.from([
     // Anchor discriminator (8 bytes)
-    Buffer.from([0, 0, 0, 0, 0, 0, 0, 0]),
+    0, 0, 0, 0, 0, 0, 0, 0,
     // Instruction index for set_favorites (1 byte)
-    Buffer.from([0]),
+    0,
     // Number (8 bytes)
-    Buffer.from(numberBuffer),
+    ...numberBytes,
     // Color string length (4 bytes)
-    Buffer.from(colorLengthBuffer),
+    ...colorLengthBytes,
     // Color string bytes
-    Buffer.from(color),
+    ...new TextEncoder().encode(color)
   ]);
 
   // Create the instruction
